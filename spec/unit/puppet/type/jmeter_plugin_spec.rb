@@ -9,13 +9,13 @@ describe Puppet::Type.type(:jmeter_plugin) do
     expect(plugin[:name]).to eq('plugin-name')
   end
   it 'requires a name' do
-    expect do
+    expect {
       Puppet::Type.type(:jmeter_plugin).new({})
-    end.to raise_error(Puppet::Error, 'Title or name must be provided')
+    }.to raise_error(Puppet::Error, 'Title or name must be provided')
   end
   it 'does not allow invalid names to be specified' do
-    expect do
+    expect {
       plugin[:name] = 'this has a space'
-    end.to raise_error(Puppet::Error, %r{Parameter name failed on Jmeter_plugin})
+    }.to raise_error(Puppet::Error, %r{Parameter name failed on Jmeter_plugin})
   end
 end

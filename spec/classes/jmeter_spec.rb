@@ -7,7 +7,7 @@ describe 'jmeter' do
   context 'on unsupported distributions' do
     let(:facts) do
       {
-        os: { name: 'Unsupported', family: 'Unsupported' }
+        os: { name: 'Unsupported', family: 'Unsupported' },
       }
     end
 
@@ -56,12 +56,12 @@ describe 'jmeter' do
       context 'jmeter::install' do
         it do
           is_expected.to contain_archive("/tmp/apache-jmeter-#{jmeter_version}.tgz").with(
-            'source' => "http://archive.apache.org/dist/jmeter/binaries/apache-jmeter-#{jmeter_version}.tgz"
+            'source' => "http://archive.apache.org/dist/jmeter/binaries/apache-jmeter-#{jmeter_version}.tgz",
           )
         end
         it do
           is_expected.to contain_file('/usr/share/jmeter').with(
-            ensure: 'link'
+            ensure: 'link',
           )
         end
 
@@ -74,20 +74,20 @@ describe 'jmeter' do
             is_expected.to contain_archive("/usr/share/jmeter/lib/ext/jmeter-plugins-manager-#{plugin_manager_version}.jar").with(
               'source' => "http://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/#{plugin_manager_version}/jmeter-plugins-manager-#{plugin_manager_version}.jar",
               'creates' => "/usr/share/jmeter/lib/ext/jmeter-plugins-manager-#{plugin_manager_version}.jar",
-              'cleanup' => :false
+              'cleanup' => :false,
             )
           end
           it do
             is_expected.to contain_archive("/usr/share/jmeter/lib/cmdrunner-#{cmdrunner_version}.jar").with(
               'source'  => "http://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/#{cmdrunner_version}/cmdrunner-#{cmdrunner_version}.jar",
               'creates' => "/usr/share/jmeter/lib/cmdrunner-#{cmdrunner_version}.jar",
-              'cleanup' => :false
+              'cleanup' => :false,
             )
           end
           it do
             is_expected.to contain_exec('install_cmdrunner').with(
               'command' => "java -cp /usr/share/jmeter/lib/ext/jmeter-plugins-manager-#{plugin_manager_version}.jar org.jmeterplugins.repository.PluginManagerCMDInstaller",
-              'creates' => '/usr/share/jmeter/bin/PluginsManagerCMD.sh'
+              'creates' => '/usr/share/jmeter/bin/PluginsManagerCMD.sh',
             )
           end
         end
@@ -97,19 +97,19 @@ describe 'jmeter' do
             {
               plugins: {
                 'foo'    => { 'ensure' => 'present' },
-                'woozle' => { 'ensure' => 'absent' }
-              }
+                'woozle' => { 'ensure' => 'absent' },
+              },
             }
           end
 
           it do
             is_expected.to contain_jmeter_plugin('foo').with(
-              'ensure' => 'present'
+              'ensure' => 'present',
             )
           end
           it do
             is_expected.to contain_jmeter_plugin('woozle').with(
-              'ensure' => 'absent'
+              'ensure' => 'absent',
             )
           end
         end
@@ -121,7 +121,7 @@ describe 'jmeter' do
           it { is_expected.to contain_class('jmeter::service') }
           it do
             is_expected.to contain_service('jmeter').with(
-              'ensure' => 'running', 'enable' => 'true'
+              'ensure' => 'running', 'enable' => 'true',
             )
           end
         end
@@ -137,7 +137,7 @@ describe 'jmeter' do
 
             it do
               is_expected.to contain_file('/etc/systemd/system/jmeter.service').with_content(
-                %r{\s-Djava.rmi.server.hostname=10\.5\.32\.9\s}
+                %r{\s-Djava.rmi.server.hostname=10\.5\.32\.9\s},
               )
             end
           end
@@ -147,7 +147,7 @@ describe 'jmeter' do
 
             it do
               is_expected.to contain_file('/etc/systemd/system/jmeter.service').with_content(
-                %r{\s-Dserver_port=8832\s}
+                %r{\s-Dserver_port=8832\s},
               )
             end
           end
@@ -164,7 +164,7 @@ describe 'jmeter' do
 
             it do
               is_expected.to contain_file('/etc/init.d/jmeter').with_content(
-                %r{\s-Djava.rmi.server.hostname=10\.5\.32\.9\s}
+                %r{\s-Djava.rmi.server.hostname=10\.5\.32\.9\s},
               )
             end
           end
@@ -174,7 +174,7 @@ describe 'jmeter' do
 
             it do
               is_expected.to contain_file('/etc/init.d/jmeter').with_content(
-                %r{\s-Dserver_port=8832\s}
+                %r{\s-Dserver_port=8832\s},
               )
             end
           end

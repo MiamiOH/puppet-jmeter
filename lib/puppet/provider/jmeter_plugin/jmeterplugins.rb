@@ -26,7 +26,7 @@ DESC
     plugins.map do |name, _versions|
       plugin = {
         ensure: :present,
-        name: name
+        name: name,
       }
       resources << new(plugin) if plugin[:name]
     end

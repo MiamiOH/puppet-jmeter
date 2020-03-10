@@ -34,9 +34,9 @@ Exception in thread "main" java.lang.IllegalArgumentException: Command parameter
 	at org.jmeterplugins.repository.PluginManagerCMD.processParams(PluginManagerCMD.java:52)
 	at kg.apc.cmdtools.PluginsCMD.processParams(PluginsCMD.java:66)
 EOT
-    expect do
+    expect {
       provider_class.instances
-    end.to raise_error(Puppet::Error, %r{Cannot get plugin status})
+    }.to raise_error(Puppet::Error, %r{Cannot get plugin status})
   end
 
   it 'calls jmeterplugins to create' do
