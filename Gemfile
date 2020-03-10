@@ -1,49 +1,71 @@
-source 'https://rubygems.org'
+source ENV['GEM_SOURCE'] || 'https://rubygems.org'
 
-gem 'puppetlabs_spec_helper', :groups => [:test]
-gem 'rspec-puppet-facts', :groups => [:test]
-
-if facterversion = ENV['FACTER_GEM_VERSION']
-    gem 'facter', facterversion.to_s, :require => false, :groups => [:test]
-else
-    gem 'facter', :require => false, :groups => [:test]
-end
-
-ENV['PUPPET_GEM_VERSION'].nil? ? puppetversion = '~> 4.0' : puppetversion = ENV['PUPPET_GEM_VERSION'].to_s
-gem 'puppet', puppetversion, :require => false, :groups => [:test]
-
-gem 'puppet-lint', :require => false, :groups => [:development]
-gem 'metadata-json-lint', :require => false, :groups => [:development], :platforms => 'ruby'
-gem 'puppet-blacksmith', '>= 3.4.0', :require => false, :groups => [:development], :platforms => 'ruby'
-gem 'semantic_puppet'
-
-# Find a location or specific version for a gem. place_or_version can be a
-# version, which is most often used. It can also be git, which is specified as
-# `git://somewhere.git#branch`. You can also use a file source location, which
-# is specified as `file://some/location/on/disk`.
 def location_for(place_or_version, fake_version = nil)
-  if place_or_version =~ /^(git[:@][^#]*)#(.*)/
-    [fake_version, { :git => $1, :branch => $2, :require => false }].compact
-  elsif place_or_version =~ /^file:\/\/(.*)/
-    ['>= 0', { :path => File.expand_path($1), :require => false }]
+  git_url_regex = %r{\A(?<url>(https?|git)[:@][^#]*)(#(?<branch>.*))?}
+  file_url_regex = %r{\Afile:\/\/(?<path>.*)}
+
+  if place_or_version && (git_url = place_or_version.match(git_url_regex))
+    [fake_version, { git: git_url[:url], branch: git_url[:branch], require: false }].compact
+  elsif place_or_version && (file_url = place_or_version.match(file_url_regex))
+    ['>= 0', { path: File.expand_path(file_url[:path]), require: false }]
   else
-    [place_or_version, { :require => false }]
+    [place_or_version, { require: false }]
   end
 end
 
-# Used for gem conditionals
-supports_windows = false
+ruby_version_segments = Gem::Version.new(RUBY_VERSION.dup).segments
+minor_version = ruby_version_segments[0..1].join('.')
 
-group :system_tests do
-  gem 'beaker', *location_for(ENV['BEAKER_VERSION'] || '~> 2.20')                if supports_windows
-  gem 'beaker', *location_for(ENV['BEAKER_VERSION'])                             if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.3.0') and ! supports_windows
-  gem 'beaker', *location_for(ENV['BEAKER_VERSION'] || '< 3')                    if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.3.0') and ! supports_windows
-  gem 'beaker-pe',                                                               :require => false if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.3.0')
-  gem 'beaker-rspec',                                                            :require => false
-  gem 'beaker-puppet_install_helper',                                            :require => false
-  gem 'beaker-module_install_helper',                                            :require => false
-  gem 'master_manipulator',                                                      :require => false
-  gem 'beaker-hostgenerator', *location_for(ENV['BEAKER_HOSTGENERATOR_VERSION'])
-  gem 'beaker-abs', *location_for(ENV['BEAKER_ABS_VERSION'] || '~> 0.1')        
-  gem 'beaker-docker'
+group :development do
+  gem "fast_gettext", '1.1.0',                         require: false if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.1.0')
+  gem "fast_gettext",                                  require: false if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.1.0')
+  gem "json_pure", '<= 2.0.1',                         require: false if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
+  gem "json", '= 1.8.1',                               require: false if Gem::Version.new(RUBY_VERSION.dup) == Gem::Version.new('2.1.9')
+  gem "json", '= 2.0.4',                               require: false if Gem::Requirement.create('~> 2.4.2').satisfied_by?(Gem::Version.new(RUBY_VERSION.dup))
+  gem "json", '= 2.1.0',                               require: false if Gem::Requirement.create(['>= 2.5.0', '< 2.7.0']).satisfied_by?(Gem::Version.new(RUBY_VERSION.dup))
+  gem "puppet-module-posix-default-r#{minor_version}", require: false, platforms: [:ruby]
+  gem "puppet-module-posix-dev-r#{minor_version}",     require: false, platforms: [:ruby]
+  gem "puppet-module-win-default-r#{minor_version}",   require: false, platforms: [:mswin, :mingw, :x64_mingw]
+  gem "puppet-module-win-dev-r#{minor_version}",       require: false, platforms: [:mswin, :mingw, :x64_mingw]
 end
+
+puppet_version = ENV['PUPPET_GEM_VERSION']
+facter_version = ENV['FACTER_GEM_VERSION']
+hiera_version = ENV['HIERA_GEM_VERSION']
+
+gems = {}
+
+gems['puppet'] = location_for(puppet_version)
+
+# If facter or hiera versions have been specified via the environment
+# variables
+
+gems['facter'] = location_for(facter_version) if facter_version
+gems['hiera'] = location_for(hiera_version) if hiera_version
+
+if Gem.win_platform? && puppet_version =~ %r{^(file:///|git://)}
+  # If we're using a Puppet gem on Windows which handles its own win32-xxx gem
+  # dependencies (>= 3.5.0), set the maximum versions (see PUP-6445).
+  gems['win32-dir'] =      ['<= 0.4.9', require: false]
+  gems['win32-eventlog'] = ['<= 0.6.5', require: false]
+  gems['win32-process'] =  ['<= 0.7.5', require: false]
+  gems['win32-security'] = ['<= 0.2.5', require: false]
+  gems['win32-service'] =  ['0.8.8', require: false]
+end
+
+gems.each do |gem_name, gem_params|
+  gem gem_name, *gem_params
+end
+
+# Evaluate Gemfile.local and ~/.gemfile if they exist
+extra_gemfiles = [
+  "#{__FILE__}.local",
+  File.join(Dir.home, '.gemfile'),
+]
+
+extra_gemfiles.each do |gemfile|
+  if File.file?(gemfile) && File.readable?(gemfile)
+    eval(File.read(gemfile), binding)
+  end
+end
+# vim: syntax=ruby
